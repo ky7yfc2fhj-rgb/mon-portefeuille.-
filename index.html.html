@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<title>Mon portefeuille</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#131e2f;--panel2:#1a2940;--text:#f3f6fb;--muted:#9aabc1;--line:#293950;--green:#42d392;--red:#ff737e;--blue:#83b7ff;--radius:20px}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#101b2d 0,#0b1220 330px);color:var(--text);font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 16px calc(28px + env(safe-area-inset-bottom));}
+main{max-width:720px;margin:0 auto}.top{display:flex;align-items:center;justify-content:space-between;padding:18px 2px 22px}.brand{font-size:13px;letter-spacing:.16em;color:var(--muted);font-weight:800}.sub{font-size:12px;color:var(--muted);margin-top:5px}.pill{font-size:11px;color:#b9d7ff;background:#203653;padding:7px 10px;border-radius:99px}
+.hero{background:linear-gradient(135deg,#1a3651,#17283d 65%,#183c3a);border:1px solid #2b4b62;border-radius:26px;padding:22px;margin-bottom:14px;box-shadow:0 18px 45px #0003}.eyebrow{font-size:11px;letter-spacing:.13em;color:#b3c6d8;font-weight:700}.perf{font-size:43px;font-weight:800;letter-spacing:-.05em;margin:8px 0 2px}.profit{font-size:14px;font-weight:650}.positive{color:var(--green)}.negative{color:var(--red)}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}.stat{background:#ffffff0d;border:1px solid #ffffff12;border-radius:15px;padding:13px}.stat small{display:block;color:#b1c1d2;font-size:11px;margin-bottom:6px}.stat strong{font-size:18px}
+.section{display:flex;align-items:center;justify-content:space-between;margin:25px 2px 12px}.section h2{font-size:17px;margin:0}.muted{color:var(--muted);font-size:12px}
+.btn{border:0;border-radius:13px;padding:12px 15px;background:#d9eaff;color:#102137;font-weight:750;font-size:14px}.btn.secondary{background:#24354c;color:#eaf2fc}.btn.danger{background:#482630;color:#ffdce0}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.list{display:grid;gap:10px}.item{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:15px;display:grid;grid-template-columns:1fr auto;gap:8px}.ticker{font-size:11px;color:var(--muted);margin-top:3px}.itemval{text-align:right;font-weight:750}.itembottom{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:10px;margin-top:3px;font-size:12px;color:var(--muted)}.empty{border:1px dashed #40516a;border-radius:17px;padding:25px;text-align:center;color:var(--muted);line-height:1.5}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-top:14px}.rowline{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}.rowline:last-child{border:0}.rowline span{color:var(--muted)}
+dialog{width:min(100%,560px);max-height:90dvh;overflow:auto;border:1px solid #3a4c64;border-radius:22px;background:#111c2c;color:var(--text);padding:20px}dialog::backdrop{background:#020712bb}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;color:var(--muted)}input,select{width:100%;background:#0b1422;border:1px solid #34465e;color:var(--text);padding:12px;border-radius:11px;font-size:16px;min-width:0}input:focus,select:focus{outline:2px solid #6eaaff;border-color:transparent}.hint{font-size:11px;color:var(--muted);line-height:1.4}.dialogactions{display:flex;gap:9px;justify-content:flex-end;margin-top:18px}.chartrow{display:grid;grid-template-columns:74px 1fr 75px;gap:8px;align-items:center;margin:12px 0;font-size:12px}.track{height:9px;background:#293950;border-radius:20px;overflow:hidden}.bar{height:100%;background:linear-gradient(90deg,#5a9fff,#42d392);border-radius:20px}.foot{color:var(--muted);font-size:11px;line-height:1.5;margin:22px 3px}.hidden{display:none!important}
+@media(max-width:390px){body{padding-left:12px;padding-right:12px}.perf{font-size:38px}.stat strong{font-size:16px}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<main>
+<header class="top"><div><div class="brand">MON PORTEFEUILLE</div><div class="sub">Ton tableau de bord boursier</div></div><span class="pill">PERSONNEL</span></header>
+<section class="hero">
+<div class="eyebrow">RENDEMENT NET GLOBAL</div><div class="perf" id="return">0,00 %</div><div class="profit" id="netprofit">+0,00 €</div>
+<div class="stats"><div class="stat"><small>Montant investi</small><strong id="invested">0,00 €</strong></div><div class="stat"><small>Valeur actuelle</small><strong id="current">0,00 €</strong></div></div>
+</section>
+<div class="section"><h2>Mes investissements</h2><button class="btn" id="add">＋ Ajouter</button></div>
+<div id="holdings" class="list"></div>
+<section class="card"><div class="section" style="margin:0 0 8px"><h2>Répartition du portefeuille</h2></div><div id="allocation"></div></section>
+<div class="section"><h2>Données et sauvegarde</h2></div>
+<div class="actions"><button class="btn secondary" id="export">Exporter ma sauvegarde</button><button class="btn secondary" id="import">Importer</button><button class="btn danger" id="clear">Tout effacer</button><input id="file" type="file" accept="application/json,.json" class="hidden"></div>
+<p class="foot">Les données sont enregistrées dans le stockage local de Safari sur cet iPhone. Exporte régulièrement une sauvegarde JSON. Les cours et taux de change sont saisis manuellement dans cette première version : aucune cotation automatique n'est encore connectée. Les frais de vente estimés sont réglés à 1 € par ligne et peuvent être modifiés lors de l'ajout ou de la modification.</p>
+</main>
+<dialog id="editor">
+<form id="form">
+<h2 id="formtitle" style="margin:0 0 16px">Ajouter un investissement</h2>
+<div class="formgrid">
+<div class="field"><label for="name">Nom de l'action</label><input id="name" required placeholder="Apple"></div>
+<div class="field"><label for="ticker">Symbole boursier</label><input id="ticker" placeholder="AAPL"></div>
+<div class="field"><label for="qty">Quantité</label><input id="qty" type="number" min="0.000001" step="any" required placeholder="2"></div>
+<div class="field"><label for="currency">Devise</label><select id="currency"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option><option>CAD</option><option>JPY</option></select></div>
+<div class="field"><label for="buy">Prix d'achat unitaire</label><input id="buy" type="number" min="0" step="any" required placeholder="180"></div>
+<div class="field"><label for="price">Cours actuel</label><input id="price" type="number" min="0" step="any" required placeholder="195"></div>
+<div class="field"><label for="fx">Taux de conversion vers EUR</label><input id="fx" type="number" min="0.0000001" step="any" required value="1"></div>
+<div class="field"><label for="fees">Frais d'achat (€)</label><input id="fees" type="number" min="0" step="any" value="1"></div>
+<div class="field"><label for="sellfees">Frais de vente estimés (€)</label><input id="sellfees" type="number" min="0" step="any" value="1"></div>
+<div class="field full hint">Pour une action en USD, indique par exemple le cours en USD et le taux EUR correspondant : 1 USD = 0,92 EUR. Pour une action en EUR, laisse le taux à 1.</div>
+</div>
+<div class="dialogactions"><button type="button" class="btn secondary" id="cancel">Annuler</button><button class="btn" type="submit">Enregistrer</button></div>
+</form>
+</dialog>
+<script>
+const KEY='mon-portefeuille-v1';let data=[];let editing=null;
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat('fr-BE',{style:'currency',currency:'EUR'}).format(Number(n)||0);
+const pct=n=>new Intl.NumberFormat('fr-BE',{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);
+const num=n=>new Intl.NumberFormat('fr-BE',{maximumFractionDigits:4}).format(Number(n)||0);
+function load(){try{data=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(data))data=[]}catch(e){data=[]}render()}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function totals(){let invested=0,current=0,fees=0;data.forEach(x=>{invested+=x.qty*x.buy*x.fx;current+=x.qty*x.price*x.fx;fees+=x.fees+x.sellfees});let net=current-invested-fees;return{invested,current,net,ret:invested+fees?net/(invested+fees):0}}
+function render(){
+ const t=totals();$('return').textContent=pct(t.ret);$('return').className='perf '+(t.ret>=0?'positive':'negative');$('netprofit').textContent=(t.net>=0?'+':'')+money(t.net);$('netprofit').className='profit '+(t.net>=0?'positive':'negative');$('invested').textContent=money(t.invested);$('current').textContent=money(t.current);
+ const h=$('holdings');h.innerHTML='';
+ if(!data.length)h.innerHTML='<div class="empty">Ton portefeuille est encore vide.<br>Appuie sur <b>＋ Ajouter</b> pour enregistrer ton premier investissement.</div>';
+ data.forEach((x,i)=>{let val=x.qty*x.price*x.fx;let basis=x.qty*x.buy*x.fx+x.fees+x.sellfees;let p=val-basis;let r=basis?p/basis:0;let el=document.createElement('article');el.className='item';el.innerHTML=`<div><strong></strong><div class="ticker"></div></div><div class="itemval"><div></div><div class="ticker"></div></div><div class="itembottom"><span></span><span class="actions"><button class="btn secondary" data-edit="${i}" style="padding:7px 10px">Modifier</button><button class="btn danger" data-delete="${i}" style="padding:7px 10px">Supprimer</button></span></div>`;el.querySelector('strong').textContent=x.name;el.querySelector('.ticker').textContent=x.ticker||x.currency;el.querySelector('.itemval div').textContent=money(val);el.querySelector('.itemval .ticker').textContent=(p>=0?'+':'')+money(p);el.querySelector('.itembottom span').textContent=`${num(x.qty)} titres · ${pct(r)} · Cours ${num(x.price)} ${x.currency}`;h.appendChild(el)});
+ h.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEdit(+b.dataset.edit));h.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{if(confirm('Supprimer cet investissement ?')){data.splice(+b.dataset.delete,1);save()}});
+ const alloc=$('allocation');alloc.innerHTML='';let max=Math.max(1,...data.map(x=>x.qty*x.price*x.fx));if(!data.length){alloc.innerHTML='<div class="muted">La répartition apparaîtra ici lorsque tu ajouteras des investissements.</div>';return}
+ data.forEach(x=>{let v=x.qty*x.price*x.fx;let row=document.createElement('div');row.className='chartrow';row.innerHTML='<span></span><div class="track"><div class="bar"></div></div><b style="text-align:right"></b>';row.querySelector('span').textContent=x.name;row.querySelector('.bar').style.width=(v/max*100)+'%';row.querySelector('b').textContent=money(v);alloc.appendChild(row)});
+}
+function openEdit(i=null){editing=i;$('formtitle').textContent=i===null?'Ajouter un investissement':'Modifier un investissement';let x=i===null?{name:'',ticker:'',qty:'',currency:'EUR',buy:'',price:'',fx:1,fees:1,sellfees:1}:data[i];['name','ticker','qty','currency','buy','price','fx','fees','sellfees'].forEach(k=>$(k).value=x[k]??'');$('editor').showModal()}
+$('add').onclick=()=>openEdit();$('cancel').onclick=()=>$('editor').close();
+$('form').onsubmit=e=>{e.preventDefault();let x={};['name','ticker','currency'].forEach(k=>x[k]=$(k).value.trim());['qty','buy','price','fx','fees','sellfees'].forEach(k=>x[k]=Number($(k).value));if(!x.name||!Number.isFinite(x.qty)||x.qty<=0||!Number.isFinite(x.fx)||x.fx<=0){alert('Vérifie le nom, la quantité et le taux de conversion.');return}if(editing===null)data.push(x);else data[editing]=x;save();$('editor').close()};
+$('export').onclick=()=>{let blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),investments:data},null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sauvegarde-mon-portefeuille.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+$('import').onclick=()=>$('file').click();$('file').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let j=JSON.parse(await f.text());let arr=Array.isArray(j)?j:j.investments;if(!Array.isArray(arr))throw Error();if(confirm('Remplacer les données actuelles par la sauvegarde ?')){data=arr;save()}}catch(err){alert('Fichier de sauvegarde non valide.')}e.target.value=''};
+$('clear').onclick=()=>{if(confirm('Effacer définitivement tous les investissements enregistrés dans ce navigateur ?')){data=[];save()}};
+load();
+</script>
+</body></html>
