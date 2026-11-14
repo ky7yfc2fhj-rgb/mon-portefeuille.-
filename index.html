@@ -25,8 +25,8 @@ dialog{width:min(100%,560px);max-height:90dvh;overflow:auto;border:1px solid #3a
 <div class="eyebrow">RENDEMENT NET GLOBAL</div><div class="perf" id="return">0,00 %</div><div class="profit" id="netprofit">+0,00 €</div>
 <div class="stats"><div class="stat"><small>Montant investi</small><strong id="invested">0,00 €</strong></div><div class="stat"><small>Valeur actuelle</small><strong id="current">0,00 €</strong></div></div>
 </section>
-<div class="section"><h2>Mes investissements</h2><div class="actions"><button class="btn secondary" id="refresh">↻ Actualiser</button><button class="btn" id="add">＋ Ajouter</button></div></div>
-<div class="muted" id="quoteStatus" role="status" aria-live="polite" style="margin:-5px 2px 12px">Cours automatiques : en attente de la première actualisation.</div>
+<div class="section"><h2>Mes investissements</h2><div class="actions"><button class="btn secondary" id="refresh">↻ Actualiser</button><button class="btn secondary" id="cloudConnect">☁ Synchroniser</button><button class="btn" id="add">＋ Ajouter</button></div></div>
+<div class="muted" id="cloudStatus" role="status" aria-live="polite" style="margin:-5px 2px 8px">Sauvegarde cloud : non connectée.</div><div class="muted" id="quoteStatus" role="status" aria-live="polite" style="margin:-5px 2px 12px">Cours automatiques : en attente de la première actualisation.</div>
 <div id="holdings" class="list"></div>
 <section class="card"><div class="section" style="margin:0 0 8px"><h2>Répartition du portefeuille</h2></div><div id="allocation"></div></section>
 <div class="section"><h2>Données et sauvegarde</h2></div>
@@ -51,14 +51,64 @@ dialog{width:min(100%,560px);max-height:90dvh;overflow:auto;border:1px solid #3a
 <div class="dialogactions"><button type="button" class="btn secondary" id="cancel">Annuler</button><button class="btn" type="submit">Enregistrer</button></div>
 </form>
 </dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL="https://qcnmttmyucgdvdbijxgx.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_HmfKhQU5rKpMP1Cjit9czA_cyNPDmx6";
+const cloudClient=window.supabase?.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+let cloudSession=null;
 const KEY='mon-portefeuille-v1';let data=[];let editing=null;
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('fr-BE',{style:'currency',currency:'EUR'}).format(Number(n)||0);
 const pct=n=>new Intl.NumberFormat('fr-BE',{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);
 const num=n=>new Intl.NumberFormat('fr-BE',{maximumFractionDigits:4}).format(Number(n)||0);
 function load(){try{data=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(data))data=[]}catch(e){data=[]}render()}
-function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render();if(cloudSession)syncCloud()}
+function setCloudStatus(message,isError=false){const el=$('cloudStatus');el.textContent=message;el.style.color=isError?'var(--red)':'var(--muted)'}
+async function syncCloud(){
+ if(!cloudClient||!cloudSession)return;
+ setCloudStatus('Sauvegarde du portefeuille dans le cloud…');
+ const {error}=await cloudClient.from('portfolio_data').upsert({user_id:cloudSession.user.id,investments:data,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+ if(error){setCloudStatus('Erreur de sauvegarde cloud : '+error.message,true);return}
+ setCloudStatus('Portefeuille sauvegardé dans Supabase · '+new Intl.DateTimeFormat('fr-BE',{dateStyle:'short',timeStyle:'short'}).format(new Date()));
+}
+async function connectCloud(){
+ if(!cloudClient){setCloudStatus('Le service cloud ne se charge pas. Recharge la page.',true);return}
+ try{
+  if(!cloudSession){
+   const email=prompt('Adresse e-mail de ton compte Supabase :');if(!email)return;
+   const password=prompt('Mot de passe Supabase :');if(!password)return;
+   const {data:authData,error:authError}=await cloudClient.auth.signInWithPassword({email,password});
+   if(authError)throw authError;cloudSession=authData.session;
+  }
+  const {data:remote,error}=await cloudClient.from('portfolio_data').select('investments,updated_at').eq('user_id',cloudSession.user.id).maybeSingle();
+  if(error)throw error;
+  if(remote&&Array.isArray(remote.investments)){
+   if(!data.length){
+    if(confirm('Une sauvegarde cloud existe. Veux-tu la restaurer sur cet iPhone ?')){data=remote.investments;localStorage.setItem(KEY,JSON.stringify(data));render();setCloudStatus('Sauvegarde cloud restaurée sur cet iPhone.');}
+    else await syncCloud();
+   }else{
+    if(confirm('Une sauvegarde cloud existe. Remplacer les données de cet iPhone par cette sauvegarde cloud ?')){data=remote.investments;localStorage.setItem(KEY,JSON.stringify(data));render();setCloudStatus('Sauvegarde cloud restaurée sur cet iPhone.');}
+    else await syncCloud();
+   }
+  }else{await syncCloud()}
+  $('cloudConnect').textContent='☁ Connecté';
+ }catch(error){setCloudStatus('Connexion impossible : '+(error.message||'vérifie ton e-mail et ton mot de passe.'),true)}
+}
+$('cloudConnect').onclick=connectCloud;
+async function restoreCloudSession(){
+ if(!cloudClient)return;
+ try{
+  const {data:authData}=await cloudClient.auth.getSession();cloudSession=authData.session;
+  if(cloudSession){
+   const {data:remote,error}=await cloudClient.from('portfolio_data').select('investments,updated_at').eq('user_id',cloudSession.user.id).maybeSingle();
+   if(error)throw error;
+   if(remote&&Array.isArray(remote.investments)&&!data.length){data=remote.investments;localStorage.setItem(KEY,JSON.stringify(data));render();setCloudStatus('Sauvegarde cloud restaurée automatiquement.')}
+   else setCloudStatus('Compte Supabase connecté.');
+   $('cloudConnect').textContent='☁ Connecté';
+  }
+ }catch(error){setCloudStatus('Synchronisation cloud indisponible : '+(error.message||'erreur'),true)}
+}
 function totals(){let invested=0,current=0,fees=0;data.forEach(x=>{invested+=x.qty*x.buy*x.fx;current+=x.qty*x.price*x.fx;fees+=x.fees+x.sellfees});let net=current-invested-fees;return{invested,current,net,ret:invested+fees?net/(invested+fees):0}}
 function render(){
  const t=totals();$('return').textContent=pct(t.ret);$('return').className='perf '+(t.ret>=0?'positive':'negative');$('netprofit').textContent=(t.net>=0?'+':'')+money(t.net);$('netprofit').className='profit '+(t.net>=0?'positive':'negative');$('invested').textContent=money(t.invested);$('current').textContent=money(t.current);
@@ -124,6 +174,7 @@ async function refreshQuotes(){
 }
 $('refresh').onclick=refreshQuotes;
 load();
+restoreCloudSession();
 refreshQuotes();
 setInterval(refreshQuotes,FOUR_HOURS);
 </script>
