@@ -166,7 +166,7 @@ async function refreshQuotes(){
    }catch(err){failed.push((x.name||symbol)+' ('+symbol+')');}
   });
   await Promise.all(jobs);
-  if(updated){localStorage.setItem(KEY,JSON.stringify(data));localStorage.setItem(QUOTE_LAST_KEY,new Date().toISOString());render();}
+  if(updated){localStorage.setItem(KEY,JSON.stringify(data));localStorage.setItem(QUOTE_LAST_KEY,new Date().toISOString());render();if(cloudSession)await syncCloud();}
   const stamp=new Intl.DateTimeFormat('fr-BE',{dateStyle:'short',timeStyle:'short'}).format(new Date());
   if(failed.length)setQuoteStatus(updated+' cours actualisé(s) · '+failed.length+' échec(s). Dernier essai : '+stamp+'. Les cours en échec ont été conservés.',true);
   else setQuoteStatus(updated+' cours actualisé(s) · Dernière actualisation : '+stamp+'.');
