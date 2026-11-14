@@ -25,12 +25,13 @@ dialog{width:min(100%,560px);max-height:90dvh;overflow:auto;border:1px solid #3a
 <div class="eyebrow">RENDEMENT NET GLOBAL</div><div class="perf" id="return">0,00 %</div><div class="profit" id="netprofit">+0,00 €</div>
 <div class="stats"><div class="stat"><small>Montant investi</small><strong id="invested">0,00 €</strong></div><div class="stat"><small>Valeur actuelle</small><strong id="current">0,00 €</strong></div></div>
 </section>
-<div class="section"><h2>Mes investissements</h2><button class="btn" id="add">＋ Ajouter</button></div>
+<div class="section"><h2>Mes investissements</h2><div class="actions"><button class="btn secondary" id="refresh">↻ Actualiser</button><button class="btn" id="add">＋ Ajouter</button></div></div>
+<div class="muted" id="quoteStatus" role="status" aria-live="polite" style="margin:-5px 2px 12px">Cours automatiques : en attente de la première actualisation.</div>
 <div id="holdings" class="list"></div>
 <section class="card"><div class="section" style="margin:0 0 8px"><h2>Répartition du portefeuille</h2></div><div id="allocation"></div></section>
 <div class="section"><h2>Données et sauvegarde</h2></div>
 <div class="actions"><button class="btn secondary" id="export">Exporter ma sauvegarde</button><button class="btn secondary" id="import">Importer</button><button class="btn danger" id="clear">Tout effacer</button><input id="file" type="file" accept="application/json,.json" class="hidden"></div>
-<p class="foot">Les données sont enregistrées dans le stockage local de Safari sur cet iPhone. Exporte régulièrement une sauvegarde JSON. Les cours et taux de change sont saisis manuellement dans cette première version : aucune cotation automatique n'est encore connectée. Les frais de vente estimés sont réglés à 1 € par ligne et peuvent être modifiés lors de l'ajout ou de la modification.</p>
+<p class="foot">Les données sont enregistrées dans le stockage local de Safari sur cet iPhone. Exporte régulièrement une sauvegarde JSON. Les cours sont récupérés automatiquement depuis Yahoo Finance (données retardées possibles) via un service intermédiaire public non officiel. Les taux de conversion EUR restent ceux que tu as saisis. Les frais de vente estimés sont réglés à 1 € par ligne et peuvent être modifiés lors de l'ajout ou de la modification.</p>
 </main>
 <dialog id="editor">
 <form id="form">
@@ -74,6 +75,56 @@ $('form').onsubmit=e=>{e.preventDefault();let x={};['name','ticker','currency'].
 $('export').onclick=()=>{let blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),investments:data},null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sauvegarde-mon-portefeuille.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 $('import').onclick=()=>$('file').click();$('file').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let j=JSON.parse(await f.text());let arr=Array.isArray(j)?j:j.investments;if(!Array.isArray(arr))throw Error();if(confirm('Remplacer les données actuelles par la sauvegarde ?')){data=arr;save()}}catch(err){alert('Fichier de sauvegarde non valide.')}e.target.value=''};
 $('clear').onclick=()=>{if(confirm('Effacer définitivement tous les investissements enregistrés dans ce navigateur ?')){data=[];save()}};
+
+// Cotations Yahoo Finance : seuls les symboles boursiers sont transmis au proxy.
+const QUOTE_PROXY='https://proxy.cors.dev/';
+const QUOTE_LAST_KEY='mon-portefeuille-quotes-updated-v1';
+const FOUR_HOURS=4*60*60*1000;
+function quoteSymbol(x){
+ const s=String(x.ticker||'').trim().toUpperCase();
+ if(s==='IE000BI8OT95') return 'MWRD.PA';
+ return s;
+}
+function setQuoteStatus(message,isError=false){
+ const el=$('quoteStatus');el.textContent=message;el.style.color=isError?'var(--red)':'var(--muted)';
+}
+async function fetchQuote(symbol){
+ const target='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(symbol)+'?range=1d&interval=1d';
+ const response=await fetch(QUOTE_PROXY+target,{method:'GET',credentials:'omit',cache:'no-store'});
+ if(!response.ok) throw new Error('HTTP '+response.status);
+ const json=await response.json();
+ const meta=json?.chart?.result?.[0]?.meta;
+ const price=Number(meta?.regularMarketPrice);
+ if(!Number.isFinite(price)||price<=0) throw new Error('Cours indisponible');
+ return {price,currency:meta.currency||null};
+}
+async function refreshQuotes(){
+ const btn=$('refresh');if(btn.disabled)return;
+ if(!data.length){setQuoteStatus('Ajoute d’abord tes investissements pour actualiser les cours.');return}
+ btn.disabled=true;btn.textContent='Actualisation…';setQuoteStatus('Récupération des cours en cours…');
+ let updated=0,failed=[];
+ try{
+  const jobs=data.map(async(x)=>{
+   const symbol=quoteSymbol(x);
+   if(!symbol){failed.push(x.name||'Ligne sans symbole');return}
+   try{
+    const q=await fetchQuote(symbol);
+    if(q.currency&&x.currency&&q.currency!==x.currency){
+     failed.push((x.name||symbol)+' : devise différente');return;
+    }
+    x.price=q.price;x.quoteUpdatedAt=new Date().toISOString();x.quoteSource='Yahoo Finance';updated++;
+   }catch(err){failed.push((x.name||symbol)+' ('+symbol+')');}
+  });
+  await Promise.all(jobs);
+  if(updated){localStorage.setItem(KEY,JSON.stringify(data));localStorage.setItem(QUOTE_LAST_KEY,new Date().toISOString());render();}
+  const stamp=new Intl.DateTimeFormat('fr-BE',{dateStyle:'short',timeStyle:'short'}).format(new Date());
+  if(failed.length)setQuoteStatus(updated+' cours actualisé(s) · '+failed.length+' échec(s). Dernier essai : '+stamp+'. Les cours en échec ont été conservés.',true);
+  else setQuoteStatus(updated+' cours actualisé(s) · Dernière actualisation : '+stamp+'.');
+ }finally{btn.disabled=false;btn.textContent='↻ Actualiser';}
+}
+$('refresh').onclick=refreshQuotes;
 load();
+refreshQuotes();
+setInterval(refreshQuotes,FOUR_HOURS);
 </script>
 </body></html>
